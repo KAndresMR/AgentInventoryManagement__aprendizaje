@@ -16,7 +16,37 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 
 Para verificar:
 
-```bash
 python --version
 pip --version
 
+## Ubicación del backend
+
+AgentInventoryManagement\_\_aprendizaje/backend
+
+## Instalar las dependencias
+
+pip install fastapi uvicorn strawberry-graphql aioinject pydantic-settings
+
+## Levantar el servidor
+
+uvicorn main:app --reload
+
+## Endpoints disponibles
+
+http://127.0.0.1:8000/health
+http://127.0.0.1:8000/docs
+http://127.0.0.1:8000/graphql
+
+## Query GraphQL de ejemplo
+
+query {
+products {
+id
+name
+price
+stock {
+quantity
+available
+}
+}
+}
