@@ -1,3 +1,15 @@
+# Base de datos local
+inventory.db
+
+# Entornos virtuales
+venv/
+.env/
+nuevo_proyecto/venv/
+
+# Cache de Python
 __pycache__/
 *.pyc
-inventory.db
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
