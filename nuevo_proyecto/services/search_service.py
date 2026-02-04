@@ -8,12 +8,12 @@ class SearchService:
         self.llm_client = llm_client
         self.product_service = product_service
 
-    # =========================
-    # IA (con manejo de errores)
-    # =========================
+    # ======================================================
+    # IA: identificar productos desde texto (con protección)
+    # ======================================================
     async def identify_product(self, text: str):
         """
-        Extrae productos usando IA.
+        Extrae productos desde texto usando IA.
         Si la IA falla (cuota, error), devuelve lista vacía.
         """
         try:
@@ -23,68 +23,78 @@ class SearchService:
             print("⚠️ IA no disponible:", e)
             return []
 
-    # =========================
-    # SEARCH INTELIGENTE
-    # =========================
+    # ======================================================
+    # SEARCH INTELIGENTE (para el buscador)
+    # Devuelve SOLO nombres de productos detectados
+    # ======================================================
     async def semanticSearch(self, text: str):
         """
-        1️⃣ Busca primero en BD (SIN IA)
-        2️⃣ Solo si no hay match, usa IA
+        1️⃣ Busca primero en la base de datos (sin IA)
+        2️⃣ Si no hay match, usa IA para detectar producto
         """
 
         text = text.strip().lower()
         inventory = await self.product_service.list_products()
 
-        # 1️⃣ BÚSQUEDA DIRECTA (GRATIS)
-        direct_matches = [p.name for p in inventory if text in p.name.lower()]
+        direct_matches = [
+            p.name for p in inventory if text in p.name.lower()
+        ]
 
         if direct_matches:
             return {"products": direct_matches}
 
-        # 2️⃣ SOLO SI NO HAY MATCH → IA
         enriched_text = f"Producto de supermercado: {text}"
         products = await self.identify_product(enriched_text)
 
         if not products:
             return {"products": []}
 
-        # 3️⃣ VALIDAR RESULTADOS IA
-        valid = []
+        valid_products = []
         for prod in products:
             for p in inventory:
                 if prod.lower() in p.name.lower():
-                    valid.append(p.name)
+                    valid_products.append(p.name)
 
-        return {"products": list(set(valid))}
+        return {"products": list(set(valid_products))}
 
-    # =========================
-    # PREGUNTAS DE INVENTARIO
-    # =========================
+    # ======================================================
+    # ASISTENTE CONVERSACIONAL DE INVENTARIO
+    # Devuelve una RESPUESTA TIPO IA (string)
+    # ======================================================
     async def ask_inventory(self, question: str) -> str:
+        """
+        Responde preguntas como:
+        - ¿Hay arroz?
+        - Stock de arroz
+        - Todavía hay leche
+        """
+
         inventory = await self.product_service.list_products()
         question_lower = question.lower()
 
-        # 1️⃣ Intento directo sin IA
+        # 1️⃣ Intentar detectar producto SIN IA
         for p in inventory:
             if p.name.lower() in question_lower:
-                if p.stock > 0:
-                    return f"✅ Sí, hay {p.name}. Stock: {p.stock}"
-                else:
-                    return f"⚠️ {p.name} está agotado."
+                # 👉 IA SOLO PARA REDACTAR
+                return await self.llm_client.generate_inventory_response(
+                    product_name=p.name,
+                    stock=p.stock,
+                    question=question
+                )
 
-        # 2️⃣ IA SOLO SI ES NECESARIO
         products = await self.identify_product(question)
 
         if not products:
-            return "❌ No hay ese producto en el inventario."
+            return "❌ No encontré ese producto en el inventario. ¿Deseas buscar otro?"
 
-        product_name = products[0].lower()
+        detected = products[0].lower()
 
         for p in inventory:
-            if product_name in p.name.lower():
-                if p.stock > 0:
-                    return f"✅ Sí, hay {p.name}. Stock: {p.stock}"
-                else:
-                    return f"⚠️ {p.name} está agotado."
+            if detected in p.name.lower():
+                return await self.llm_client.generate_inventory_response(
+                    product_name=p.name,
+                    stock=p.stock,
+                    question=question
+                )
 
-        return f"❌ No hay {products[0]} en el inventario."
+        return f"❌ El producto {products[0]} no existe en el inventario."

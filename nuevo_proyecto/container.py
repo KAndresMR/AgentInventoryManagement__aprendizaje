@@ -7,7 +7,7 @@ from services.search_service import SearchService
 from llm.llm_client import LLMClient
 
 
-# 🔑 FUNCIÓN SÍNCRONA (NO async, NO yield)
+#  FUNCIÓN SÍNCRONA (NO async, NO yield)
 def get_session() -> AsyncSession:
     return AsyncSessionLocal()
 
@@ -15,7 +15,7 @@ def get_session() -> AsyncSession:
 def create_container() -> Container:
     container = Container()
 
-    # 🔥 ESTA LÍNEA ES LA CLAVE DE TODO
+    #  ESTA LÍNEA ES LA CLAVE DE TODO
     container.register(Scoped(get_session, provides=AsyncSession))
 
     # Servicios

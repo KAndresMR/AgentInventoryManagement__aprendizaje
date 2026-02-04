@@ -36,3 +36,45 @@ Texto:
             contents=["Describe el producto de supermercado en la imagen", img],
         )
         return response.text
+    
+# --------------------------------------------
+ 
+    async def generate_inventory_response(
+        self, product_name: str, stock: int, question: str
+    ):
+        """
+        Genera una respuesta en lenguaje natural basada en datos reales
+        del inventario. La IA SOLO redacta, no inventa datos.
+        """
+
+        prompt = f"""
+            Eres un asistente inteligente de inventario.
+
+            Pregunta del usuario:
+        "{question}"
+
+        Datos reales del inventario:
+        Producto: {product_name}
+        Stock actual: {stock}
+
+        Instrucciones:
+        - Responde en español
+        - Usa un tono natural y amigable
+        - NO inventes datos
+        - Si el stock es bajo (<=5), recomienda comprar más
+        - Si el stock es suficiente, indícalo claramente
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+            )
+            return response.text.strip()
+
+        except Exception as e:
+            print("⚠️ Error generando respuesta IA:", e)
+            return (
+                f"El producto {product_name} tiene actualmente "
+                f"{stock} unidades disponibles en el inventario."
+            )

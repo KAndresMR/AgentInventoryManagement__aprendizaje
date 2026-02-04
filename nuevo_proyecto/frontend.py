@@ -154,21 +154,22 @@ if st.button("🔍 Analizar") and user_input:
             st.error("❌ No se pudo obtener respuesta del asistente")
 
     # =========================
-    # Búsqueda normal
-    # =========================
+# Búsqueda inteligente (respuesta IA)
+# =========================
     else:
         res = run_query(
-            SEARCH_INTELLIGENT_QUERY,
-            {"q": user_input}
-        )
+        SEARCH_INTELLIGENT_QUERY,
+        {"q": user_input}
+    )
 
-        if res and res.get("data"):
-            items = res["data"].get("searchIntelligent", [])
+    if res and res.get("data"):
+        response_text = res["data"].get("searchIntelligent")
 
-            if items:
-                for item in items:
-                    st.success(f"🛒 Producto detectado: {item}")
-            else:
-                st.warning("⚠️ No se identificaron productos en la frase.")
+        if response_text:
+            st.success("🤖 Respuesta del asistente")
+            st.markdown(response_text)
         else:
-            st.error("❌ Error en la búsqueda inteligente")
+            st.warning("⚠️ No se obtuvo respuesta del asistente.")
+    else:
+        st.error("❌ Error en la búsqueda inteligente")
+

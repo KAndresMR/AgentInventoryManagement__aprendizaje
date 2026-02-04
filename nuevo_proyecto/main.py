@@ -33,14 +33,33 @@ class Query:
             return [ProductType(id=p.id, name=p.name, stock=p.stock) for p in products]
 
     @strawberry.field
-    async def searchIntelligent(self, query: str) -> list[str]:
+    async def searchIntelligent(self, query: str) -> str:
         async with AsyncSessionLocal() as session:
             llm = LLMClient()
             product_service = ProductService(session)
             search_service = SearchService(llm, product_service)
 
-            result = await search_service.semanticSearch(query)
-            return result.get("products", [])
+        # 1️⃣ Buscar producto (sin IA)
+        result = await search_service.semanticSearch(query)
+        products = result.get("products", [])
+
+        if not products:
+            return "❌ No encontré productos relacionados en el inventario."
+
+        # 2️⃣ Tomar el primer producto detectado
+        inventory = await product_service.list_products()
+        for p in inventory:
+            if p.name.lower() == products[0].lower():
+
+                # 3️⃣ USAR IA PARA REDACTAR LA RESPUESTA
+                return await llm.generate_inventory_response(
+                    product_name=p.name,
+                    stock=p.stock,
+                    question=query
+                )
+
+        return "❌ El producto fue detectado, pero no existe en el inventario."
+
 
     @strawberry.field
     async def askInventory(self, question: str) -> str:
@@ -98,10 +117,8 @@ class Mutation:
                 detected = products[0].lower()
                 for p in inventory:
                     if detected in p.name.lower():
-                        return (
-                            f"📸 Producto detectado: {p.name}\n"
-                            f"✅ Existe en inventario (stock: {p.stock})"
-                        )
+                        return search_service.build_product_response(p, detected_from="imagen")
+
 
             # 2️⃣ Fallback sin IA (texto libre)
             desc_lower = description.lower()
